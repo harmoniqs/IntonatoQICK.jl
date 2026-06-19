@@ -1,0 +1,9 @@
+# Intentionally declares NO Python dependencies.
+#
+# `qick` (openquantumhardware/qick) is FPGA-side software that lives in the
+# QICK board's own Python environment — it is not a resolvable conda/PyPI
+# package off-board. Declaring nothing here keeps `using IntonatoQICK` and CI
+# resolution trivial (no environment build, no board driver), so the mock path
+# runs with no Python. The real `PyQickSoc` does a lazy `pyimport("qick")` at
+# construction time and expects qick pre-installed in the board's Python.
+[deps]
