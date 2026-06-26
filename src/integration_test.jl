@@ -3,10 +3,10 @@
 # rises) and (2) the QickExperiment composes with the Intonato
 # `PulseTuningProblem` chassis end-to-end.
 #
-# NOTE: algorithmic *convergence* of QILC through the QICK seam needs a real
-# tuning strategy (ILCStrategy), which lives in the private Intonatissimo. To
-# keep IntonatoQICK public (Intonato-only dep), the chassis test here uses the
-# public no-op `IdentityStrategy` and asserts the loop *runs* through the seam.
+# NOTE: algorithmic *convergence* of QILC through the QICK seam needs a concrete
+# tuning strategy, which ships in a separate private package. To keep
+# IntonatoQICK public (Intonato-only dep), the chassis test here uses the public
+# no-op `IdentityStrategy` and asserts the loop *runs* through the seam.
 # Convergence-through-QICK belongs in a private/demo integration test.
 
 @testitem "QICK translation is faithful: readout converges as DAC rate rises" tags=[:slow] begin

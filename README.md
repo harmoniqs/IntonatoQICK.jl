@@ -35,7 +35,7 @@ map   = QickChannelMap([QickGenChannel(0, 5e9; i_drive = 1)]; n_drives = 1)
 model = MeasurementModel(:ψ̃, [populations], [N])
 qexp  = QickExperiment(QickBackend(soc, map, [N]); measurement_model = model)
 
-# Plug into Intonato's QILC chassis (a tuning strategy comes from Intonatissimo):
+# Plug into Intonato's QILC chassis (a concrete tuning strategy is supplied separately):
 ptp = PulseTuningProblem(qcp, qexp, model; R_tr = (u = 0.1,), Q_meas = 10.0)
 solve!(ptp; max_iter = 10)
 ```
