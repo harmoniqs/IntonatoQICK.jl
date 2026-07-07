@@ -43,8 +43,13 @@ function trigger!(b::QickBackend)
     return nothing
 end
 
-function readout(b::QickBackend)
-    raw = acquire(b.soc, b.channel_map.readout_chs)
+# Returns RAW multiplexed IQ (channel-major `raw[ch][k]`) and stashes it in
+# `last_raw`; the reduction to measurements is done by the QickExperiment closure
+# via `reduce_readout` (readout stays raw — the boundary invariant). `kind` is
+# forwarded to the board so it performs the right measurement (`:iq` / `:wigner`
+# / `:tomography_1q`); the mock ignores it.
+function readout(b::QickBackend; kind::Symbol = :iq)
+    raw = acquire(b.soc, b.channel_map.readout_chs; kind = kind)
     b.last_raw = raw
     return raw
 end
@@ -67,6 +72,8 @@ sample_rate(b::QickBackend) = dac_rate(b.soc)
     IntonatoQICK.trigger!(b)
     raw = IntonatoQICK.readout(b)
     @test b.last_raw === raw
-    @test sum(real.(raw[1])) ≈ 1.0 atol=1e-6
+    # channel-major raw[ch][k]: one readout channel, one knot (final).
+    @test length(raw) == 1
+    @test sum(real.(raw[1][1])) ≈ 1.0 atol=1e-6
     @test IntonatoQICK.sample_rate(b) == 20.0
 end
