@@ -14,6 +14,15 @@ A device-agnostic description of a played pulse:
   envelopes back to drive controls — used by `MockQickSoc`).
 - `n_drives` — control count of the source pulse.
 - `indices` — measurement knot indices (into `1:N`) the readout should produce.
+- `readout_routing` — the readout channels to acquire from, mirroring
+  `QickChannelMap.readout_chs`. On a multiplexed readout this is the per-shot
+  channel list; the board acquires one IQ result per entry (the Julia side sees
+  this as multiple readout results, not a v2 concept — see the boundary
+  invariant). Purely additive; the DAC/envelope path is unchanged.
+
+Note: v2 specifics (`AveragerProgramV2`, dynamic readout, sweeps) are assembled
+board-side from this plain representation (`PyQickSoc`/`expt_service`), never here
+— the Julia optimizer stays board-agnostic.
 """
 struct QickProgram
     times::Vector{Float64}
@@ -22,6 +31,7 @@ struct QickProgram
     routing::Vector{Tuple{Int,Int,Union{Int,Nothing}}}
     n_drives::Int
     indices::Vector{Int}
+    readout_routing::Vector{Int}
 end
 
 # Default per-gen-channel envelope sample-memory cap (typical QICK firmware is
@@ -58,7 +68,8 @@ function pulse_to_envelopes(pulse::AbstractPulse, map::QickChannelMap,
         carrier_freqs[ch.gen_ch] = ch.carrier_freq
         push!(routing, (ch.gen_ch, ch.i_drive, ch.q_drive))
     end
-    return QickProgram(times, envelopes, carrier_freqs, routing, map.n_drives, indices)
+    return QickProgram(times, envelopes, carrier_freqs, routing, map.n_drives,
+                       indices, copy(map.readout_chs))
 end
 
 @testitem "pulse_to_envelopes samples + routes correctly" begin
@@ -95,4 +106,20 @@ end
     pulse = LinearSplinePulse(0.1 .* randn(1, 11), collect(range(0.0, 5.0, length=11)))
     map = QickChannelMap([QickGenChannel(0, 5e9; i_drive=1, q_drive=2)]; n_drives=2)
     @test_throws ErrorException pulse_to_envelopes(pulse, map, 10.0, [11])
+end
+
+@testitem "QickProgram carries multiplexed-readout routing" begin
+    using IntonatoQICK
+    N = 11; T = 5.0
+    times = collect(range(0.0, T, length=N))
+    pulse = LinearSplinePulse(0.1 .* randn(1, N), times)
+    # Two readout channels (multiplexed), one drive on one gen channel.
+    map = QickChannelMap([QickGenChannel(0, 5e9; i_drive=1)];
+                         readout_chs=[0, 1], n_drives=1)
+    prog = pulse_to_envelopes(pulse, map, 10.0, [N])
+    # `routing` is built per gen channel (a complex i+q drive is n_drives=2 on
+    # one channel), so it mirrors the channel count, NOT n_drives (C4).
+    @test length(prog.routing) == length(map.channels)
+    # NEW additive field: per-readout-channel map, mirroring map.readout_chs.
+    @test prog.readout_routing == [0, 1]
 end
