@@ -3,20 +3,33 @@
 # translate→upload→trigger→readout→discriminate into a `Vector{Measurement}`.
 
 """
-    QickExperiment(backend; measurement_model) → HardwareExperiment
+    QickExperiment(backend; measurement_model, kind=:iq) → HardwareExperiment
 
 Build a `HardwareExperiment` whose `run(pulse)` uploads/plays `pulse` on
-`backend`'s SoC and discriminates the readout into measurements. The
-`measurement_model` annotates logged `ExperimentRecord`s with true provenance
-(rather than the identity placeholder); its indices must match `backend.indices`.
+`backend`'s SoC and reduces the readout into measurements. The `measurement_model`
+annotates logged `ExperimentRecord`s with true provenance (rather than the
+identity placeholder); its indices must match `backend.indices`.
+
+`kind` selects the readout behind the single `readout` verb (`:iq` | `:wigner` |
+`:tomography_1q`, [`reduce_readout`](@ref)). It is forwarded to the board so it
+performs the right measurement, and used to reduce the raw acquisition. `:iq`
+reduces Julia-side via `backend.discriminator`; `:wigner` / `:tomography_1q` are
+reduced board-side and passed through (boundary invariant, C7). An unrecognized
+kind is a typed error, never a crash (§5.7).
+
 Plug the result into `PulseTuningProblem(qcp, qick_exp, model; …)`.
 """
-function QickExperiment(backend::QickBackend; measurement_model::MeasurementModel)
+function QickExperiment(backend::QickBackend; measurement_model::MeasurementModel,
+                        kind::Symbol = :iq)
+    if !(kind in READOUT_KINDS)
+        known = join(READOUT_KINDS, ", ")
+        error("QickExperiment: unknown readout kind :$kind (recognized: $known)")
+    end
     run = pulse -> begin
         upload_pulse!(backend, pulse)
         trigger!(backend)
-        raw = readout(backend)
-        iq_to_measurements(raw, backend.discriminator, backend.indices)
+        raw = readout(backend; kind = kind)     # raw IQ; the board measures per-kind
+        reduce_readout(kind, raw, backend.discriminator, backend.indices)
     end
     return HardwareExperiment(run, measurement_model)
 end
