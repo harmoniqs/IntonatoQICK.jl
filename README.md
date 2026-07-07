@@ -24,6 +24,15 @@ Piccolo × QICK toolchain.
 - **`QickExperiment(backend; measurement_model)`** → a Intonato
   `HardwareExperiment` you drop straight into `PulseTuningProblem`.
 
+## Closed-loop calibration on hardware
+
+`QickBackend` is the hardware **chassis** — it moves pulses to the board and IQ
+back. The concrete **closed-loop calibration strategy** that drives it (the thing
+that actually tunes your gates against the live device) is provided by
+**Intonatissimo**, Harmoniqs's premium calibration package (partner-licensed). If
+you're calibrating on real QICK hardware and want the closed-loop strategy rather
+than rolling your own, [get in touch](https://harmoniqs.co).
+
 ## Usage (mock)
 
 ```julia
