@@ -2,7 +2,7 @@
 # played pulse through a known `QuantumSystem` (Intonato's own `rollout`, via a
 # `SimulatedExperiment`) and emitting synthetic IQ. The forward model is explicit:
 #   state → IQ blob = measurement_fn(state) packed as a real-valued complex vector,
-# which the trivial discriminator `real` inverts EXACTLY. So a QILC loop run
+# which the trivial discriminator `real` inverts EXACTLY. So a closed-loop run
 # through `QickBackend{MockQickSoc}` reproduces the same measurements a direct
 # `SimulatedExperiment` would — the loop is validated without a board.
 #

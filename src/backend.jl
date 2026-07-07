@@ -1,6 +1,6 @@
 # QickBackend — the AbstractHardwareBackend over an AbstractQickSoc. Implements
 # the documented hardware interface (upload_pulse! / trigger! / readout /
-# sample_rate). The QILC chassis never calls these directly; the QickExperiment
+# sample_rate). The calibration chassis never calls these directly; the QickExperiment
 # `run` closure (experiment.jl) does, once per experiment evaluation.
 
 """
@@ -11,7 +11,7 @@ knot indices (into `1:N`) the readout produces; `discriminator` maps one IQ blob
 to a data vector (default: real part, matching `MockQickSoc`'s populations
 forward model). `last_raw` holds the most recent raw readout.
 
-Note: under line search the QILC chassis evaluates the experiment several times
+Note: under line search the calibration chassis evaluates the experiment several times
 per outer iteration, so `last_raw` reflects the *last probe*, not necessarily the
 accepted iterate.
 """

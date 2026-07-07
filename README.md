@@ -1,8 +1,8 @@
 # IntonatoQICK.jl
 
 A [QICK](https://github.com/openquantumhardware/qick) hardware backend for
-[Intonato](https://github.com/harmoniqs/Intonato.jl)'s closed-loop quantum
-optimal control (QILC). Bridges a Intonato `PulseTuningProblem` to a QICK RFSoC
+[Intonato](https://github.com/harmoniqs/Intonato.jl)'s closed-loop pulse
+calibration. Bridges an Intonato `PulseTuningProblem` to a QICK RFSoC
 board via [PythonCall](https://github.com/JuliaPy/PythonCall.jl).
 
 ## What it provides
@@ -12,7 +12,7 @@ board via [PythonCall](https://github.com/JuliaPy/PythonCall.jl).
   over an abstract `AbstractQickSoc`.
 - **`MockQickSoc`** — a pure-Julia "board" that simulates execution by rolling
   the played pulse through a known `QuantumSystem` and emitting synthetic IQ. The
-  whole QILC→QICK loop runs and is tested with **no Python and no hardware**.
+  whole calibration→QICK loop runs and is tested with **no Python and no hardware**.
 - **`PyQickSoc`** — the real board, reached over PythonCall with a **lazy `qick`
   import** (only on a board; never touched off-board or in CI). Some methods are
   hardware stubs, finalized with the QICK collaboration.
@@ -35,17 +35,24 @@ map   = QickChannelMap([QickGenChannel(0, 5e9; i_drive = 1)]; n_drives = 1)
 model = MeasurementModel(:ψ̃, [populations], [N])
 qexp  = QickExperiment(QickBackend(soc, map, [N]); measurement_model = model)
 
-# Plug into Intonato's QILC chassis (a concrete tuning strategy is supplied separately):
+# Plug into Intonato's calibration chassis (tuning strategies ship in Intonatissimo):
 ptp = PulseTuningProblem(qcp, qexp, model; R_tr = (u = 0.1,), Q_meas = 10.0)
 solve!(ptp; max_iter = 10)
 ```
 
 Swap `MockQickSoc` for `PyQickSoc(; dac_rate, adc_rate)` on a real QICK board.
 
+## Tuning strategies
+
+`PulseTuningProblem` needs a concrete tuning strategy to close the loop.
+Production strategies ship in **Intonatissimo**, Harmoniqs' premium
+closed-loop calibration package — [get in touch](mailto:contact@harmoniqs.co)
+about licensing.
+
 ## Data-provenance note
 
-Intonato's `ExperimentRecord` logging is **not** triggered inside the QILC
-chassis loop today (the chassis calls `run_experiment` with no logger, and the
+Intonato's `ExperimentRecord` logging is **not** triggered inside the closed-loop
+chassis today (the chassis calls `run_experiment` with no logger, and the
 record's `raw` field is hardcoded `nothing`). So `QickBackend` stashes the most
 recent raw IQ in `backend.last_raw`, and a *manual*
 `run_experiment(qexp, pulse; logger=…)` logs measurement-level records. Full
