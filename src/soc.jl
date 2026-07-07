@@ -10,8 +10,10 @@ Abstraction over a QICK SoC (board controller). Concrete subtypes implement:
 - `load_envelope!(soc, gen_ch, idata, qdata)` — load a complex envelope onto a
   generator channel's waveform memory.
 - `play_program!(soc, program::QickProgram)` — arm/run the program (envelopes +
-  carrier frequencies + timing + measurement indices).
-- `acquire(soc, ro_chs) → raw` — read out; returns raw per-measurement data.
+  carrier frequencies + timing + measurement indices + readout routing).
+- `acquire(soc, ro_chs; kind=:iq) → raw` — read out; returns **channel-major**
+  raw IQ `raw[ch][k]` (one blob list per readout channel × knot index). `kind`
+  selects the board-side readout (`:iq` | `:wigner` | `:tomography_1q`).
 - `dac_rate(soc) → Float64`, `adc_rate(soc) → Float64` — sample rates (Hz).
 """
 abstract type AbstractQickSoc end
@@ -21,7 +23,7 @@ load_envelope!(soc::AbstractQickSoc, args...) =
     error("load_envelope! not implemented for $(typeof(soc))")
 play_program!(soc::AbstractQickSoc, args...) =
     error("play_program! not implemented for $(typeof(soc))")
-acquire(soc::AbstractQickSoc, args...) =
+acquire(soc::AbstractQickSoc, args...; kwargs...) =
     error("acquire not implemented for $(typeof(soc))")
 dac_rate(soc::AbstractQickSoc) =
     error("dac_rate not implemented for $(typeof(soc))")
