@@ -1,5 +1,5 @@
 # QickExperiment — wraps a QickBackend as an Intonato `HardwareExperiment`, the
-# seam the QILC `PulseTuningProblem` chassis consumes. The `run` closure chains
+# seam the closed-loop calibration `PulseTuningProblem` chassis consumes. The `run` closure chains
 # translate→upload→trigger→readout→discriminate into a `Vector{Measurement}`.
 
 """
