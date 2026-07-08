@@ -8,6 +8,10 @@ using Reexport
 # Measurement, run_experiment, AbstractHardwareBackend, HardwareExperiment, …
 # are all in scope here.
 using Intonato
+# QickBackend implements the AbstractHardwareBackend interface. Intonato declares
+# these as generic functions, so import them explicitly to EXTEND (add methods on
+# QickBackend) rather than shadow them with a local same-named function.
+import Intonato: upload_pulse!, trigger!, readout, sample_rate
 using LinearAlgebra
 using PythonCall
 using TestItems
