@@ -57,4 +57,4 @@ closure), tracked separately.
 
 Interface-complete with a tested mock loop. Real-board validation, calibration
 routines, and multi-board orchestration are out of scope for v0 (with the QICK
-collaboration). Not registered yet.
+collaboration). Registered in the General registry (v0.1.0).
