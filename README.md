@@ -1,3 +1,10 @@
+> # ⚠️ DEPRECATED — renamed to [Strumento.jl](https://github.com/harmoniqs/Strumento.jl)
+>
+> This package is the Julia face of the Python `strumento` framework and now lives as
+> **Strumento.jl**. It stays registered at v0.1.0 so old references resolve, but gets no
+> further releases. Migrate: `using IntonatoQICK` → `using Strumento`
+> (`QickBackend`→`StrumentoBackend`, `MockQickSoc`→`MockSoc`, `PyQickSoc`→`StrumentoSoc`).
+
 # IntonatoQICK.jl
 
 A [QICK](https://github.com/openquantumhardware/qick) hardware backend for

@@ -1,5 +1,17 @@
 module IntonatoQICK
 
+# ── DEPRECATED ────────────────────────────────────────────────────────────────
+# IntonatoQICK.jl has been renamed to Strumento.jl (https://github.com/harmoniqs/Strumento.jl),
+# reframed as the Julia face of the Python `strumento` QICK framework. This package stays
+# registered at v0.1.0 so existing references resolve, but receives no further releases.
+function __init__()
+    @warn "IntonatoQICK.jl is deprecated and renamed to Strumento.jl " *
+          "(https://github.com/harmoniqs/Strumento.jl). No further releases will be made here; " *
+          "migrate `using IntonatoQICK` -> `using Strumento` (QickBackend->StrumentoBackend, " *
+          "MockQickSoc->MockSoc, PyQickSoc->StrumentoSoc)."
+end
+# ──────────────────────────────────────────────────────────────────────────────
+
 using Reexport
 @reexport using Intonato
 
