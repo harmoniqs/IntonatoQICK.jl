@@ -44,8 +44,11 @@ include("py_soc.jl")
 # ──── Experiment factory ─────────────────────────────────────────────────────
 include("experiment.jl")
 
-# ──── Integration tests (mock QILC→QICK loop) ────────────────────────────────
+# ──── Integration tests (mock closed-loop calibration → QICK loop) ───────────
 include("integration_test.jl")
+
+# ──── Public name-scrub guard (§2.3, §5.5) ───────────────────────────────────
+include("name_scrub.jl")
 
 # ──── Exports ────────────────────────────────────────────────────────────────
 export AbstractQickSoc, MockQickSoc, PyQickSoc

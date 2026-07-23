@@ -1,7 +1,7 @@
 # QickBackend — the AbstractHardwareBackend over an AbstractQickSoc. Implements
 # the documented hardware interface (upload_pulse! / trigger! / readout /
-# sample_rate). The QILC chassis never calls these directly; the QickExperiment
-# `run` closure (experiment.jl) does, once per experiment evaluation.
+# sample_rate). The closed-loop calibration chassis never calls these directly;
+# the QickExperiment `run` closure (experiment.jl) does, once per evaluation.
 
 """
     QickBackend(soc, channel_map, indices; discriminator = b -> real.(b))
@@ -11,9 +11,9 @@ knot indices (into `1:N`) the readout produces; `discriminator` maps one IQ blob
 to a data vector (default: real part, matching `MockQickSoc`'s populations
 forward model). `last_raw` holds the most recent raw readout.
 
-Note: under line search the QILC chassis evaluates the experiment several times
-per outer iteration, so `last_raw` reflects the *last probe*, not necessarily the
-accepted iterate.
+Note: under line search the closed-loop calibration chassis evaluates the
+experiment several times per outer iteration, so `last_raw` reflects the *last
+probe*, not necessarily the accepted iterate.
 """
 mutable struct QickBackend{S<:AbstractQickSoc} <: AbstractHardwareBackend
     soc::S
@@ -43,8 +43,13 @@ function trigger!(b::QickBackend)
     return nothing
 end
 
-function readout(b::QickBackend)
-    raw = acquire(b.soc, b.channel_map.readout_chs)
+# Returns RAW multiplexed IQ (channel-major `raw[ch][k]`) and stashes it in
+# `last_raw`; the reduction to measurements is done by the QickExperiment closure
+# via `reduce_readout` (readout stays raw — the boundary invariant). `kind` is
+# forwarded to the board so it performs the right measurement (`:iq` / `:wigner`
+# / `:tomography_1q`); the mock ignores it.
+function readout(b::QickBackend; kind::Symbol = :iq)
+    raw = acquire(b.soc, b.channel_map.readout_chs; kind = kind)
     b.last_raw = raw
     return raw
 end
@@ -67,6 +72,8 @@ sample_rate(b::QickBackend) = dac_rate(b.soc)
     IntonatoQICK.trigger!(b)
     raw = IntonatoQICK.readout(b)
     @test b.last_raw === raw
-    @test sum(real.(raw[1])) ≈ 1.0 atol=1e-6
+    # channel-major raw[ch][k]: one readout channel, one knot (final).
+    @test length(raw) == 1
+    @test sum(real.(raw[1][1])) ≈ 1.0 atol=1e-6
     @test IntonatoQICK.sample_rate(b) == 20.0
 end

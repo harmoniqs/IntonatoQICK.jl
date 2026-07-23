@@ -1,10 +1,11 @@
-# Integration tests for the mock QILC→QICK loop. These validate (1) the
-# pulse→envelope→rollout translation is faithful (converges as the DAC rate
-# rises) and (2) the QickExperiment composes with the Intonato
+# Integration tests for the mock closed-loop calibration → QICK loop. These
+# validate (1) the pulse→envelope→rollout translation is faithful (converges as
+# the DAC rate rises) and (2) the QickExperiment composes with the Intonato
 # `PulseTuningProblem` chassis end-to-end.
 #
-# NOTE: algorithmic *convergence* of QILC through the QICK seam needs a concrete
-# tuning strategy, which ships in a separate private package. To keep
+# NOTE: algorithmic *convergence* of the closed-loop calibration through the QICK
+# seam needs a concrete tuning strategy, which ships in a separate private
+# package. To keep
 # IntonatoQICK public (Intonato-only dep), the chassis test here uses the public
 # no-op `IdentityStrategy` and asserts the loop *runs* through the seam.
 # Convergence-through-QICK belongs in a private/demo integration test.

@@ -2,9 +2,9 @@
 # played pulse through a known `QuantumSystem` (Intonato's own `rollout`, via a
 # `SimulatedExperiment`) and emitting synthetic IQ. The forward model is explicit:
 #   state → IQ blob = measurement_fn(state) packed as a real-valued complex vector,
-# which the trivial discriminator `real` inverts EXACTLY. So a QILC loop run
-# through `QickBackend{MockQickSoc}` reproduces the same measurements a direct
-# `SimulatedExperiment` would — the loop is validated without a board.
+# which the trivial discriminator `real` inverts EXACTLY. So a closed-loop
+# calibration run through `QickBackend{MockQickSoc}` reproduces the same
+# measurements a direct `SimulatedExperiment` would — validated without a board.
 #
 # The user passes the "true" (optionally mismatched) system as the mock's system;
 # the nominal QCP is solved against the nominal system separately.
@@ -44,7 +44,7 @@ load_envelope!(soc::MockQickSoc, gen_ch::Int, idata, qdata) =
 
 play_program!(soc::MockQickSoc, program::QickProgram) = (soc._program = program; nothing)
 
-function acquire(soc::MockQickSoc, _ro_chs)
+function acquire(soc::MockQickSoc, ro_chs; kind::Symbol = :iq)
     prog = soc._program
     prog === nothing && error("MockQickSoc.acquire: no program played")
     # Reconstruct the drive controls from the loaded per-channel envelopes.
@@ -60,11 +60,20 @@ function acquire(soc::MockQickSoc, _ro_chs)
     model = MeasurementModel(:ψ̃, [soc.measurement_fn for _ in prog.indices], prog.indices)
     exp = SimulatedExperiment(KetTrajectory(soc.system, recon, soc.ψ_init, soc.ψ_goal), model)
     ms = run_experiment(exp, recon)
-    # Forward model state→IQ: pack each measurement's data as a complex blob.
-    return [ComplexF64.(m.data) for m in ms]
+    # Forward model state→IQ: pack each measurement's data as a complex blob,
+    # one blob per knot index.
+    per_knot = [ComplexF64.(m.data) for m in ms]
+    # Multiplexed, channel-major shape raw[ch][k]: one per-knot blob list per
+    # requested readout channel (`length(raw) == length(ro_chs)`). The mock's
+    # forward model is state-based, so every channel sees the same synthetic
+    # readout — enough to exercise the multiplexed IQ *shape* without a board.
+    # `kind` is accepted for interface parity (the board picks the measurement);
+    # the mock's synthetic IQ is kind-agnostic — real Wigner / tomography physics
+    # is board-side (expt_service), an accepted mock/real divergence.
+    return [copy(per_knot) for _ in ro_chs]
 end
 
-@testitem "MockQickSoc round-trips a pulse to valid populations IQ" begin
+@testitem "MockQickSoc round-trips a pulse to valid multiplexed populations IQ" begin
     using IntonatoQICK
     using LinearAlgebra
     σx = ComplexF64[0 1; 1 0]; σz = ComplexF64[1 0; 0 -1]
@@ -72,7 +81,8 @@ end
     N = 11; T = 5.0
     times = collect(range(0.0, T, length=N))
     pulse = LinearSplinePulse(0.1 .* randn(1, N), times)
-    map = QickChannelMap([QickGenChannel(0, 5e9; i_drive=1)]; n_drives=1)
+    # Two multiplexed readout channels.
+    map = QickChannelMap([QickGenChannel(0, 5e9; i_drive=1)]; readout_chs=[0, 1], n_drives=1)
 
     soc = MockQickSoc(sys, ComplexF64[1, 0], ComplexF64[0, 1]; dac_rate=20.0)
     prog = pulse_to_envelopes(pulse, map, dac_rate(soc), [N])
@@ -80,11 +90,18 @@ end
         load_envelope!(soc, gen_ch, idata, qdata)
     end
     play_program!(soc, prog)
-    raw = acquire(soc, [0])
+    raw = acquire(soc, prog.readout_routing)
 
-    @test length(raw) == 1                 # one measurement (final knot)
-    pops = real.(raw[1])
-    @test length(pops) == 2                # dim-2 populations
-    @test sum(pops) ≈ 1.0 atol=1e-6        # valid probability vector
+    # Channel-major raw[ch][k]: one entry per readout channel.
+    @test length(raw) == 2
+    @test all(length(raw[ch]) == 1 for ch in 1:2)   # one knot (final) each
+    pops = real.(raw[1][1])
+    @test length(pops) == 2                          # dim-2 populations
+    @test sum(pops) ≈ 1.0 atol=1e-6                  # valid probability vector
     @test all(pops .≥ -1e-9)
+    @test real.(raw[2][1]) ≈ pops                    # mock replicates across channels
+
+    # Single-channel round-trip still reduces to one blob list.
+    raw1 = acquire(soc, [0])
+    @test length(raw1) == 1 && length(raw1[1]) == 1
 end
